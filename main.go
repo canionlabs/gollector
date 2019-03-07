@@ -15,8 +15,8 @@ func main() {
 	flag.Parse()
 
 	mongoConfig := MongoConfig{*mongoURL, *databaseName, *collectionName}
-	c := mongoConfig.connect()
+	mongo := mongoConfig.connect()
 
 	consumer := Consumer{*amqpURL, *queueName}
-	consumer.start(c.callbackEvent)
+	consumer.start(mongo.callbackEvent)
 }
