@@ -23,9 +23,9 @@ func (consumer *Consumer) start(callback EventHandler) {
 	ch, _ := conn.Channel()
 	defer ch.Close()
 
-	queue, _ := ch.QueueDeclare(
+	queue, err := ch.QueueDeclarePassive(
 		consumer.Queue, // name
-		false,          // durable
+		true,           // durable
 		false,          // delete when unused
 		false,          // exclusive
 		false,          // no-wait
