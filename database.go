@@ -37,7 +37,8 @@ type Collection struct {
 }
 
 func (config *MongoConfig) _connect() *mgo.Collection {
-	session, _ := mgo.Dial(config.URI)
+	session, err := mgo.Dial(config.URI)
+	errorHandler(err, "Error in mgo.Dial")
 	return session.DB(config.DatabaseName).C(config.Collection)
 }
 
