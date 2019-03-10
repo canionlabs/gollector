@@ -1,8 +1,7 @@
 package main
 
 import (
-	"log"
-
+	log "github.com/sirupsen/logrus"
 	"github.com/streadway/amqp"
 )
 
@@ -17,22 +16,27 @@ type Consumer struct {
 type EventHandler func(amqp.Delivery)
 
 func (consumer *Consumer) start(callback EventHandler) {
-	conn, _ := amqp.Dial(consumer.URI)
+	conn, err := amqp.Dial(consumer.URI)
+	errorHandler(err, "Error in amqp.Dial")
 	defer conn.Close()
 
-	ch, _ := conn.Channel()
+	ch, err := conn.Channel()
+	errorHandler(err, "Error in conn.Channel")
 	defer ch.Close()
 
-	queue, _ := ch.QueueDeclare(
+	queue, err := ch.QueueDeclare(
 		consumer.Queue, // name
-		false,          // durable
+		true,           // durable
 		false,          // delete when unused
 		false,          // exclusive
 		false,          // no-wait
 		nil,            // arguments
 	)
+	errorHandlerWithFields(
+		err, "Error in QueueDeclare", log.Fields{"queue": consumer.Queue},
+	)
 
-	msgs, _ := ch.Consume(
+	messages, _ := ch.Consume(
 		queue.Name, // queue
 		"",         // consumer
 		true,       // auto-ack
@@ -41,15 +45,26 @@ func (consumer *Consumer) start(callback EventHandler) {
 		false,      // no-wait
 		nil,        // args
 	)
+	errorHandlerWithFields(
+		err, "Error in Consume", log.Fields{"queue": consumer.Queue},
+	)
 
 	forever := make(chan bool)
 
 	go func() {
-		for deliveredMessage := range msgs {
+		for deliveredMessage := range messages {
 			callback(deliveredMessage)
-			log.Printf("Received a message: %s", deliveredMessage.Body)
+			log.WithFields(log.Fields{
+				"file":   "consumer",
+				"queue":  queue.Name,
+				"author": deliveredMessage.UserId,
+			}).Info("New message received")
 		}
 	}()
 
+	log.WithFields(log.Fields{
+		"file":  "consumer",
+		"queue": queue.Name,
+	}).Warn("Start Consumer")
 	<-forever
 }

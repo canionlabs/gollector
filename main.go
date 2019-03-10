@@ -2,7 +2,23 @@ package main
 
 import (
 	"flag"
+	"os"
+
+	log "github.com/sirupsen/logrus"
 )
+
+func init() {
+	productionEnv := flag.Bool("production", false, "When production is activated, the log level is set to Warn")
+
+	log.SetFormatter(&log.JSONFormatter{})
+	log.SetOutput(os.Stdout)
+
+	if *productionEnv == true {
+		log.SetLevel(log.WarnLevel)
+	} else {
+		log.SetLevel(log.InfoLevel)
+	}
+}
 
 func main() {
 	amqpURL := flag.String("amqpUrl", "amqp://guest:guest@localhost:5672/", "AQMP URI format")
